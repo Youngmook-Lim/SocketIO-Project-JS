@@ -2,7 +2,8 @@ const socket = io();
 
 const welcome = document.getElementById("welcome");
 const room = document.getElementById("room");
-const form = welcome.querySelector("form");
+const roomForm = welcome.querySelector("#roomName");
+const nameForm = welcome.querySelector("#name");
 
 room.hidden = true;
 
@@ -17,7 +18,7 @@ function addMessage(message) {
 
 function handleMessageSubmit(e) {
   e.preventDefault();
-  const input = room.querySelector("input");
+  const input = room.querySelector("#msg input");
   const value = input.value;
   socket.emit("new_message", value, roomName, () => {
     addMessage(`You: ${value}`);
@@ -25,34 +26,54 @@ function handleMessageSubmit(e) {
   input.value = "";
 }
 
+function handleNicknameSubmit(e) {
+  e.preventDefault();
+  const input = nameForm.querySelector("input");
+  socket.emit("nickname", input.value);
+}
+
 function showRoom() {
   welcome.hidden = true;
   room.hidden = false;
   const h3 = room.querySelector("h3");
   h3.innerText = `Room ${roomName}`;
-  const form = room.querySelector("form");
-  form.addEventListener("submit", handleMessageSubmit);
+  const msgForm = room.querySelector("#msg");
+  msgForm.addEventListener("submit", handleMessageSubmit);
 }
 
 function handleRoomSubmit(e) {
   e.preventDefault();
-  const input = form.querySelector("input");
+  const input = roomForm.querySelector("input");
   socket.emit("enter_room", input.value, showRoom);
   roomName = input.value;
   input.value = "";
 }
 
-form.addEventListener("submit", handleRoomSubmit);
+roomForm.addEventListener("submit", handleRoomSubmit);
+nameForm.addEventListener("submit", handleNicknameSubmit);
 
-socket.on("welcome", () => {
-  addMessage("Someone joined!");
+socket.on("welcome", (user) => {
+  addMessage(`${user} arrived!`);
 });
 
-socket.on("bye", () => {
-  addMessage("Someone left!");
+socket.on("bye", (left) => {
+  addMessage(`${left} left!`);
 });
 
 socket.on("new_message", addMessage);
+
+socket.on("room_change", (rooms) => {
+  const roomList = welcome.querySelector("ul");
+  roomList.innerHTML = "";
+  if (rooms.length === 0) {
+    return;
+  }
+  rooms.forEach((room) => {
+    const li = document.createElement("li");
+    li.innerText = room;
+    roomList.append(li);
+  });
+});
 
 /* const messageList = document.querySelector("ul");
 const messageForm = document.querySelector("#message");
